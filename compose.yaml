@@ -1,0 +1,56 @@
+services:
+  # MySQL database
+  mysql:
+    image: mysql:8.3
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: myappdb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+
+  # NGINX RTMP Server
+  nginx-rtmp-server:
+    build:
+      context: ./nginx-rtmp
+      dockerfile: Dockerfile
+    image: nginx-rtmp-server:latest
+    ports:
+      - "1935:1935"
+      - "9090:9090"
+    volumes:
+      - ./nginx-rtmp/html:/usr/share/nginx/html
+    restart: unless-stopped
+
+  # Spring Boot Application
+  spring-boot-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: spring-boot-app:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+
+volumes:
+  mysql_data:

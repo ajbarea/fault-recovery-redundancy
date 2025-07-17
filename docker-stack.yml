@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # MySQL database
+  mysql:
+    image: mysql:8.3
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: myappdb
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: mypassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "myuser", "-pmypassword"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - backend
+
+  # NGINX RTMP Server
+  nginx-rtmp-server:
+    image: nginx-rtmp-server:latest
+    ports:
+      - "1935:1935"
+      - "9090:9090"
+    volumes:
+      - rtmp_data:/shared
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - frontend
+      - backend
+
+  # Spring Boot Application
+  spring-boot-app:
+    image: spring-boot-app:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - frontend
+      - backend
+
+  # Heartbeat Service
+  heartbeat-service:
+    image: spring-boot-app:latest
+    environment:
+      SPRING_PROFILES_ACTIVE: heartbeat
+    ports:
+      - "8081:8080"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: overlay
+  backend:
+    driver: overlay
+
+volumes:
+  mysql_data:
+    driver: local
+  rtmp_data:
+    driver: local
