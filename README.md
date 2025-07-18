@@ -280,7 +280,11 @@ For production environments or to enable high availability with redundancy:
    curl http://localhost:8080/heartbeat/status
    ```
 
-3. 📝 Register for a streaming key by sending a POST request to `localhost:8080/api/auth/register`. There are many ways that you may do this.
+### 🎮 Using the System
+
+Once your services are running (either via Docker Compose or Docker Swarm), follow these steps:
+
+1. 📝 Register for a streaming key by sending a POST request to `localhost:8080/api/auth/register`. There are many ways that you may do this.
    You may use Postman, Insomnia, etc., or a classic curl command:
 
    ```bash
@@ -303,8 +307,8 @@ For production environments or to enable high availability with redundancy:
    }
    ```
 
-4. 📋 Copy your stream key. You will need this to paste in obs or ffmpeg to start streaming.
-5. 📺 Start streaming using your favorite streaming client (e.g., OBS, ffmpeg) with the RTMP URL:
+2. 📋 Copy your stream key. You will need this to paste in obs or ffmpeg to start streaming.
+3. 📺 Start streaming using your favorite streaming client (e.g., OBS, ffmpeg) with the RTMP URL:
 
    ```text
    rtmp://localhost/live
@@ -312,13 +316,13 @@ For production environments or to enable high availability with redundancy:
 
    In the stream key field, paste your generated stream key.
 
-6. ▶️ Click on start stream in OBS or run the following ffmpeg command:
+4. ▶️ Click on start stream in OBS or run the following ffmpeg command:
 
    ```bash
    ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=1000:sample_rate=44100 -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost/live/<your-stream-key>
    ```
 
-7. 👀 View the stream using a media player that supports HLS (e.g., VLC, ffplay) with the URL:
+5. 👀 View the stream using a media player that supports HLS (e.g., VLC, ffplay) with the URL:
 
    ```text
    http://localhost:9090/live/stream_<your-username>/index.m3u8
