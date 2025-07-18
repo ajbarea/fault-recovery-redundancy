@@ -1,6 +1,6 @@
 spring:
   application:
-      name: authentication-and-authorization
+      name: fault-recovery-redundancy
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
