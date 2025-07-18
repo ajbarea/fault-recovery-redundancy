@@ -49,15 +49,18 @@ services:
       - frontend
       - backend
 
-  # Spring Boot Application
-  spring-boot-app:
+  # Spring Boot Application - Primary Replica
+  spring-boot-app-primary:
     image: spring-boot-app:latest
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: mypassword
+      FAULT_RECOVERY_REPLICA_URLS: "http://spring-boot-app-primary:8080/health,http://spring-boot-app-secondary:8080/health"
+    ports:
+      - "8080:8080"
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
     healthcheck:
@@ -70,11 +73,14 @@ services:
       - frontend
       - backend
 
-  # Heartbeat Service
-  heartbeat-service:
+  # Spring Boot Application - Secondary Replica
+  spring-boot-app-secondary:
     image: spring-boot-app:latest
     environment:
-      SPRING_PROFILES_ACTIVE: heartbeat
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+      FAULT_RECOVERY_REPLICA_URLS: "http://spring-boot-app-primary:8080/health,http://spring-boot-app-secondary:8080/health"
     ports:
       - "8081:8080"
     deploy:
@@ -86,7 +92,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
     networks:
+      - frontend
       - backend
 
 networks:
@@ -100,3 +108,7 @@ volumes:
     driver: local
   rtmp_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/rtmp-shared

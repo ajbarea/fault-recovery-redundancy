@@ -28,24 +28,49 @@ services:
       - ./nginx-rtmp/html:/usr/share/nginx/html
     restart: unless-stopped
 
-  # Spring Boot Application
-  spring-boot-app:
+  # Spring Boot Application - Primary Replica
+  spring-boot-app-primary:
     build:
       context: ./app
       dockerfile: Dockerfile
     image: spring-boot-app:latest
+    container_name: spring-boot-app-primary
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: mypassword
+      FAULT_RECOVERY_REPLICA_URLS: "http://spring-boot-app-primary:8080/health,http://spring-boot-app-secondary:8080/health"
     depends_on:
       - mysql
     restart: unless-stopped
-
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Spring Boot Application - Secondary Replica
+  spring-boot-app-secondary:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: spring-boot-app:latest
+    container_name: spring-boot-app-secondary
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+      FAULT_RECOVERY_REPLICA_URLS: "http://spring-boot-app-primary:8080/health,http://spring-boot-app-secondary:8080/health"
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
