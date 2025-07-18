@@ -204,7 +204,7 @@ public class HeartbeatService {
     }
 
     /**
-     * Records a failover or recovery event.
+     * Records a failover or recovery event for auditing.
      */
     private void recordFailoverEvent(String replicaUrl, String eventType, String description) {
         FailoverEvent event = new FailoverEvent(
@@ -375,7 +375,7 @@ public class HeartbeatService {
     }
 
     /**
-     * Represents a failover or recovery event.
+     * Represents a failover or recovery event for auditing.
      */
     private static class FailoverEvent {
         private final LocalDateTime timestamp;
