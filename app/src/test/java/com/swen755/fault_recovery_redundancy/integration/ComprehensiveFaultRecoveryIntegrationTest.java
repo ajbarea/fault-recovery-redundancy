@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -40,10 +40,10 @@ public class ComprehensiveFaultRecoveryIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate; // Client for testing HTTP endpoints
 
-    @MockBean
+    @MockitoBean
     private RestTemplate mockRestTemplate; // Mock for simulating replica responses
 
-    @MockBean
+    @MockitoBean
     private FailureSimulator failureSimulator; // Service for controlled failure simulation
 
     @Autowired

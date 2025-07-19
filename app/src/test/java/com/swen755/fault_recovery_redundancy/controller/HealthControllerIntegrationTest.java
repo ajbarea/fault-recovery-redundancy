@@ -3,7 +3,7 @@ package com.swen755.fault_recovery_redundancy.controller;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,10 +31,10 @@ class HealthControllerIntegrationTest {
         @Autowired
         private MockMvc mockMvc; // Spring MVC test support
 
-        @MockBean
+        @MockitoBean
         private HeartbeatService heartbeatService; // Service for monitoring system health
 
-        @MockBean
+        @MockitoBean
         private FailureSimulator failureSimulator; // Service for simulating system failures
 
         /**

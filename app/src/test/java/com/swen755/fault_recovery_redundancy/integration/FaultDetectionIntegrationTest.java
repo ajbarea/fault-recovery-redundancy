@@ -3,7 +3,7 @@ package com.swen755.fault_recovery_redundancy.integration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
@@ -38,10 +38,10 @@ public class FaultDetectionIntegrationTest {
         @Autowired
         private TestRestTemplate restTemplate; // Client for testing HTTP endpoints
 
-        @MockBean
+        @MockitoBean
         private RestTemplate mockRestTemplate; // Mock for simulating replica responses
 
-        @MockBean
+        @MockitoBean
         private FailureSimulator failureSimulator;
 
         @Autowired
