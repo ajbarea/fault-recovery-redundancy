@@ -64,7 +64,7 @@ public class AuthController {
                     .collect(Collectors.joining(", "));
             return ResponseEntity.badRequest().body(errors);
         }
-        
+
         Optional<User> user = userService.login(request.username, request.password);
         if (user.isPresent()) {
             User authenticatedUser = user.get();
@@ -74,7 +74,8 @@ public class AuthController {
                     "email", authenticatedUser.getEmail(),
                     "streamKey", authenticatedUser.getStreamKey(),
                     "serverUrl", "rtmp://localhost:1935/live",
-                    "streamUrl", "http://localhost:9090/live/stream_" + authenticatedUser.getUsername() + "/index.m3u8"));
+                    "streamUrl",
+                    "http://localhost:9090/live/stream_" + authenticatedUser.getUsername() + "/index.m3u8"));
         } else {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Invalid username or password"));

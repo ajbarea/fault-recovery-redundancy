@@ -13,7 +13,7 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:5173"); // Frontend dev server
-        configuration.addAllowedOrigin("http://localhost:3000");  // Alternative frontend port
+        configuration.addAllowedOrigin("http://localhost:3000"); // Alternative frontend port
         configuration.addAllowedMethod("*"); // Allow all methods
         configuration.addAllowedHeader("*"); // Allow all headers
         configuration.setAllowCredentials(true);
