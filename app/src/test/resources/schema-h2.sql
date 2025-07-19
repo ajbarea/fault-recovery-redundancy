@@ -1,0 +1,10 @@
+-- H2 Database Schema for Testing
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID DEFAULT RANDOM_UUID() PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    stream_key VARCHAR(255) NOT NULL UNIQUE,
+    active BOOLEAN DEFAULT TRUE
+);

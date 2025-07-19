@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.13</version>
+		<version>3.5.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.swen755</groupId>
-	<artifactId>authentication-and-authorization</artifactId>
+	<artifactId>fault-recovery-redundancy</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>authentication-and-authorization</name>
-	<description>Spring Boot project for Authentication and Authorization security tactic</description>
+		<name>fault-recovery-redundancy</name>
+	<description>Spring Boot project demonstrating Fault Recovery with Active Redundancy</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -56,6 +56,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Thymeleaf for web templates -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
 		<dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -72,6 +78,13 @@
 	<dependency>
 		<groupId>jakarta.validation</groupId>
 		<artifactId>jakarta.validation-api</artifactId>
+	</dependency>
+
+	<!-- H2 Database for testing -->
+	<dependency>
+		<groupId>com.h2database</groupId>
+		<artifactId>h2</artifactId>
+		<scope>test</scope>
 	</dependency>
 	</dependencies>
 

@@ -1,32 +1,67 @@
+# Docker Swarm Architecture Diagram
+
 ```mermaid
-graph TD
-    Client[Streaming Client] -->|RTMP Stream| LB[Docker Swarm Routing Mesh]
-    Viewer[Stream Viewer] -->|HLS Stream| LB
-    Admin[System Admin] -->|Monitor| LB
+graph TB
+    Client[Streaming Client<br/>OBS/FFmpeg] -->|RTMP :1935| SwarmLB[Docker Swarm<br/>Routing Mesh]
+    Viewer[Stream Viewer<br/>Video Player] -->|HLS :9090| SwarmLB
+    Admin[System Admin] -->|HTTP :8080/:8081| SwarmLB
+    Frontend[React Frontend] -->|HTTP :5173| SwarmLB
     
-    subgraph Docker Swarm
-        LB -->|RTMP| RTMP1[NGINX RTMP 1]
-        LB -->|RTMP| RTMP2[NGINX RTMP 2]
-        LB -->|HTTP| APP1[Spring Boot App 1]
-        LB -->|HTTP| APP2[Spring Boot App 2]
-        LB -->|HTTP| HB[Heartbeat Service]
+    subgraph SwarmCluster[Docker Swarm Stack]
+        SwarmLB -->|:1935| NGINX[nginx-rtmp-server<br/>2 replicas]
+        SwarmLB -->|:9090| NGINX
+        SwarmLB -->|:8080| PRIMARY[spring-boot-app-primary<br/>1 replica]
+        SwarmLB -->|:8081| SECONDARY[spring-boot-app-secondary<br/>1 replica]
+        SwarmLB -->|:5173| FRONTEND[frontend<br/>1 replica]
         
-        RTMP1 -->|Auth Check| APP1
-        RTMP1 -->|Auth Check| APP2
-        RTMP2 -->|Auth Check| APP1
-        RTMP2 -->|Auth Check| APP2
+        subgraph StreamProcessing[Stream Processing Layer]
+            NGINX -->|on_publish| PRIMARY
+            NGINX -.->|failover| SECONDARY
+            NGINX -->|HLS output| SHARED[rtmp_data volume<br/>/shared/live]
+        end
         
-        HB -->|Health Check| APP1
-        HB -->|Health Check| APP2
+        subgraph FaultRecovery[Fault Recovery Layer]
+            PRIMARY -->|HeartbeatService<br/>10s interval| PRIMARY
+            SECONDARY -->|HeartbeatService<br/>10s interval| SECONDARY
+            PRIMARY -.->|Cross-check| SECONDARY
+            SECONDARY -.->|Cross-check| PRIMARY
+        end
         
-        APP1 -->|Data| DB[MySQL]
-        APP2 -->|Data| DB
+        subgraph DataPersistence[Data Persistence Layer]
+            PRIMARY -->|JDBC| MYSQL[(MySQL Database<br/>myappdb:3306)]
+            SECONDARY -->|JDBC| MYSQL
+            MYSQL -->|Storage| MYSQL_VOL[mysql_data volume]
+        end
         
-        RTMP1 -.->|Shared Storage| VOL[Shared Volume]
-        RTMP2 -.->|Shared Storage| VOL
+        subgraph Networks[Overlay Networks]
+            FE_NET[frontend network<br/>overlay driver]
+            BE_NET[backend network<br/>overlay driver]
+        end
     end
     
-    style LB fill:#f9f,stroke:#333,stroke-width:2px
-    style Docker Swarm fill:#e6f7ff,stroke:#333,stroke-width:1px
-    style VOL fill:#ffe6cc,stroke:#333,stroke-width:1px
+    subgraph ConfigParams[System Configuration]
+        CONFIG["Heartbeat: 10s interval<br/>Failure threshold: 3 consecutive<br/>Recovery threshold: 2 consecutive<br/>Docker healthcheck: 30s interval"]
+    end
+    
+    %% Network assignments
+    FRONTEND -.-> FE_NET
+    NGINX -.-> FE_NET
+    NGINX -.-> BE_NET
+    PRIMARY -.-> FE_NET
+    PRIMARY -.-> BE_NET
+    SECONDARY -.-> FE_NET  
+    SECONDARY -.-> BE_NET
+    MYSQL -.-> BE_NET
+    
+    %% Styling
+    style SwarmLB fill:#f9f,stroke:#333,stroke-width:2px
+    style SwarmCluster fill:#e6f7ff,stroke:#333,stroke-width:1px
+    style NGINX fill:#ffeb3b,stroke:#333,stroke-width:2px
+    style PRIMARY fill:#4caf50,stroke:#333,stroke-width:2px
+    style SECONDARY fill:#8bc34a,stroke:#333,stroke-width:2px
+    style MYSQL fill:#2196f3,stroke:#333,stroke-width:2px
+    style SHARED fill:#ff9800,stroke:#333,stroke-width:1px
+    style MYSQL_VOL fill:#ff9800,stroke:#333,stroke-width:1px
+    style CONFIG fill:#fff2cc,stroke:#333,stroke-width:1px
+    style FRONTEND fill:#9c27b0,stroke:#333,stroke-width:2px
 ```
