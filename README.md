@@ -29,158 +29,65 @@ This project demonstrates:
 
 - Java and Maven
 - Docker and Docker Compose
-- Node.js and npm
-- OBS Studio
-- VLC Media Player
 
-### 1. Build and Start the Application
+### 1. Build and Start the Fault Recovery System
 
 ```bash
-# Start all services
-docker compose up -d --build
+# Clone the repository
+git clone https://github.com/ajbarea/fault-recovery-redundancy.git
+cd fault-recovery-redundancy
 
-# Start the frontend development server
-cd frontend
-npm run dev
+# Start all services with active redundancy
+docker compose up -d --build
 ```
 
-### 2. Set Up Streaming
+This starts:
 
-1. **Get your stream credentials:**
-   - Register for a stream key through the frontend UX
-   - Note your generated server URL and stream key
+- 🍃 **Spring Boot application - Primary replica** on port 8080
+- 🍃 **Spring Boot application - Secondary replica** on port 8081
+- 🗄️ **MySQL database** for shared state
+- 🌐 **Frontend interface** on port 5173 (for testing the critical process)
 
-2. **Configure OBS Studio:**
-   - Open OBS Studio
-   - Go to Settings → Stream
-   - Enter your server URL and stream key
-   - Click Apply and OK
+### 2. Verify Fault Recovery System
 
-3. **Start streaming:**
-   - Click "Start Streaming" in OBS
+```bash
+# Check that both replicas are healthy
+curl http://localhost:8080/heartbeat/status
 
-### 3. View the Stream
+# Test the critical process (user registration service)
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "password": "test123", "confirmPassword": "test123", "email": "test@example.com"}'
+```
 
-1. **Open VLC Media Player**
-2. **Access the stream:**
-   - Go to Media → Open Network Stream...
-   - Enter the network URL: `http://localhost:9090/live/stream_<username>/index.m3u8`
-   - Replace `<username>` with your actual username
-   - Click Play
+### 3. Test Fault Recovery
 
-You should now have a fully functional streaming setup! 🎥
+```bash
+# Simulate a failure of the primary replica
+docker compose stop spring-boot-app-primary
+
+# Verify the system still works with the secondary replica
+curl -X POST http://localhost:8081/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "resilient_user", "password": "test123", "confirmPassword": "test123", "email": "resilient@example.com"}'
+
+# Check heartbeat status to see fault detection
+curl http://localhost:8081/heartbeat/status
+```
+
+You now have a working fault recovery system with active redundancy! 🛡️
 
 ## 🏛️ Architecture
 
-### 🧩 Components Diagram
+### 📊 Technical Diagrams
 
-![livestreamingarch.png](./docs/livestreamingarch.png)
+For detailed technical diagrams, see:
 
-### 📊 Class Diagram
-
-```mermaid
-classDiagram
-    title Fault Recovery and Redundancy System
-
-    class AuthController {
-        +register(RegisterRequest, BindingResult): ResponseEntity
-    }
-    class FailureSimulationController {
-        +enableSimulation(): ResponseEntity
-        +disableSimulation(): ResponseEntity
-        +simulateFailure(String): ResponseEntity
-        +recoverReplica(String): ResponseEntity
-        +getSimulationStatus(): ResponseEntity
-        +resetSimulation(): ResponseEntity
-    }
-    class HealthController {
-        +healthCheck(): ResponseEntity
-        +faultRecoveryStatus(): ResponseEntity
-        +replicasHealth(): ResponseEntity
-    }
-    class HeartbeatController {
-        +getStatus(): ResponseEntity
-        +getPrimaryReplica(): ResponseEntity
-    }
-    class StreamController {
-        +start(String): ResponseEntity
-        +stop(String): ResponseEntity
-        +redirect(): ResponseEntity
-    }
-
-    class UserService {
-        -userRepository: UserRepository
-        -passwordEncoder: PasswordEncoder
-        +register(RegisterRequest): User
-        +findByStreamKey(String): User
-    }
-    class HeartbeatService {
-        -restTemplate: RestTemplate
-        -failureSimulator: FailureSimulator
-        -replicaUrls: List
-        -replicaStatusMap: Map
-        +performHeartbeatAndFaultRecovery()*
-        +getCurrentPrimaryReplica(): String
-        +getHealthyReplicas(): List
-        +isSystemOperational(): boolean
-    }
-    class FailureSimulator {
-        -simulationEnabled: boolean
-        -failureProbability: double
-        +shouldSimulateFailure(String): boolean
-        +simulateFailure(String)
-        +recoverReplica(String)
-    }
-
-    class User {
-        -id: UUID
-        -username: String
-        -password: String
-        -email: String
-        -streamKey: String
-        +generateStreamKey()
-    }
-    class RegisterRequest {
-        +username: String
-        +password: String
-        +confirmPassword: String
-        +email: String
-    }
-    class UserRepository {
-        +findByUsername(String): User
-        +findByStreamKey(String): User
-    }
-    <<Repository>> UserRepository
-    
-    class JpaRepository
-    class RestTemplate
-    class PasswordEncoder
-
-    %% --- Relationships ---
-
-    %% Controller Dependencies
-    AuthController --> UserService
-    FailureSimulationController --> FailureSimulator
-    HealthController --> HeartbeatService
-    HeartbeatController --> HeartbeatService
-    StreamController --> UserService
-
-    %% Service Dependencies
-    UserService --> UserRepository
-    UserService --> PasswordEncoder
-    HeartbeatService --> FailureSimulator
-    HeartbeatService --> RestTemplate
-
-    %% Data Layer
-    UserService ..> User : creates & uses
-    StreamController ..> User : uses
-    UserRepository ..> User : manages
-    UserRepository --|> JpaRepository
-
-    %% DTO Usage
-    AuthController ..> RegisterRequest : uses
-    UserService ..> RegisterRequest : uses
-```
+- [Livestreaming Class Diagram](docs/Livestreaming%20Class%20Diagram.md) - Complete system class structure and relationships
+- [Failover Flow Diagram](docs/Failover%20Flow%20Diagram.md) - Fault recovery sequence and process flow
+- [Swarm Architecture Diagram](docs/Swarm%20Architecture%20Diagram.md) - Docker Swarm deployment architecture
+- [Components Architecture PNG](docs/livestreamingarch.png) - High-level system components overview
+- [Class Diagram PNG](docs/livestreamingclass.png) - Visual class structure diagram
 
 ---
 
@@ -227,217 +134,63 @@ fault.recovery.simulation.recovery.probability=0.3
 
 ---
 
-## 🚀 Getting Started
-
-### 📋 Prerequisites
-
-- ☕ Java 17+
-- 🔧 Maven
-- 💻 An IDE like IntelliJ IDEA or Eclipse
-- 🐳 Docker
-- 📹 Streaming client, you can use OBS or ffmpeg on the CLI
-- 🎥 A Client to view the stream video, you may use VLC other players or use ffplay on the CLI
-
-### 🔗 Dependencies
-
-The project implements fault recovery with redundancy using the following components:
-
-- 🍃 **Spring Boot Applications**: Two replica instances (in `app/` directory) that serve as the critical process requiring fault tolerance. Each replica includes an integrated HeartbeatService for monitoring other replicas using REST health checks.
-- 🎲 **FailureSimulator Service**: Integrated service (`com.swen755.fault_recovery_redundancy.service.FailureSimulator`) that can simulate non-deterministic failures for testing fault recovery mechanisms.
-- 🗄️ **MySQL Database**: Shared database for storing user credentials and stream keys with persistent storage to survive container restarts.
-- 🎬 **NGINX RTMP Server**: The media server (in `nginx-rtmp/` directory) that handles RTMP streaming, deployed with multiple replicas for high availability.
-- 🐝 **Docker Swarm/Compose**: Container orchestration providing automatic load balancing, health checks, and replica management across different processors/containers.
-
----
-
 ## 🏗️ How to Run
 
-### 🐳 Docker Compose (Single Node)
+### 🐳 Docker Compose Setup
 
-1. 📥 Clone the repository:
+```bash
+# Clone the repository
+git clone https://github.com/ajbarea/fault-recovery-redundancy.git
+cd fault-recovery-redundancy
 
-   ```bash
-   git clone https://github.com/ajbarea/fault-recovery-redundancy.git
-   cd fault-recovery-redundancy
-   ```
+# Start all services with fault recovery
+docker compose up -d --build
+```
 
-2. 🔨 **Start the services** using Docker Compose:
+This will start:
 
-   ```bash
-   # Build and start all services in detached mode
-   docker compose up -d --build
-   
-   # Alternative: Start without rebuild (if images already exist)
-   docker compose up -d
-   ```
+- � **Spring Boot application - Primary replica** on port 8080
+- 🍃 **Spring Boot application - Secondary replica** on port 8081
+- 🗄️ **MySQL database** on port 3306
+- 🌐 **Frontend React Application** on port 5173
 
-   This will start:
-   - 🗄️ **MySQL database** on port 3306
-   - 🎬 **NGINX RTMP server** on ports 1935 (RTMP) and 9090 (HTTP)
-   - 🍃 **Spring Boot application - Primary replica** on port 8080
-   - 🍃 **Spring Boot application - Secondary replica** on port 8081
+### 🔍 Verify System Status
 
-3. ✅ **Verify services are running**:
+```bash
+# Check service status
+docker compose ps
 
-   ```bash
-   # Check service status
-   docker compose ps
-   
-   # View logs for all services
-   docker compose logs
-   
-   # View logs for a specific service
-   docker compose logs spring-boot-app-primary
-   ```
+# View logs for fault recovery monitoring
+docker compose logs spring-boot-app-primary
 
-4. 🛑 **Stop the services** when done:
+# Check heartbeat status
+curl http://localhost:8080/heartbeat/status
+```
 
-   ```bash
-   # Stop services but keep containers
-   docker compose stop
-   
-   # Stop and remove containers, networks
-   docker compose down
-   
-   # Stop and remove containers, networks, and volumes (complete cleanup)
-   docker compose down -v
-   
-   # Stop and remove containers, networks, volumes, and images
-   docker compose down -v --rmi all
-   ```
+### 🛑 Stop Services
 
-### 🐝 Docker Swarm (High Availability)
+```bash
+# Stop and remove containers
+docker compose down
 
-For production environments or to enable high availability with redundancy:
+# Complete cleanup (removes volumes)
+docker compose down -v
+```
 
-1. 🚀 **Initialize Docker Swarm** (if not already initialized):
+### 🐝 Optional: Docker Swarm for Multi-Node Testing
 
-   ```bash
-   docker swarm init
-   ```
+For testing fault recovery across different processors:
 
-2. 🔨 **Build the images**:
+```bash
+# Initialize Docker Swarm
+docker swarm init
 
-   ```bash
-   docker build -t spring-boot-app:latest ./app
-   docker build -t nginx-rtmp-server:latest ./nginx-rtmp
-   ```
+# Deploy with redundancy across nodes
+docker stack deploy -c docker-stack.yml fault-recovery-demo
 
-3. 🚀 **Deploy the stack**:
-
-   ```bash
-   docker stack deploy -c docker-stack.yml streaming-auth
-   ```
-
-   This will start:
-   - 🗄️ **MySQL database** (1 replica)
-   - 🎬 **NGINX RTMP server** (2 replicas) on ports 1935 (RTMP) and 9090 (HTTP)
-   - 🍃 **Spring Boot application - Primary replica** (1 replica) on port 8080
-   - 🍃 **Spring Boot application - Secondary replica** (1 replica) on port 8081
-
-4. ✅ **Verify the services are running**:
-
-   ```bash
-   # Check stack services status
-   docker stack ls
-   
-   # List all services in the stack
-   docker service ls
-   
-   # Check specific service details
-   docker service ps streaming-auth_spring-boot-app-primary
-   
-   # View service logs
-   docker service logs streaming-auth_spring-boot-app-primary
-   ```
-
-5. 🩺 **Check the health status of all replicas**:
-
-   ```bash
-   curl http://localhost:8080/heartbeat/status
-   ```
-
-6. 🛑 **Remove the stack** when done:
-
-   ```bash
-   # Remove the entire stack (stops and removes all services)
-   docker stack rm streaming-auth
-   
-   # Optional: Leave Docker Swarm mode (single node only)
-   docker swarm leave --force
-   
-   # Optional: Clean up unused images and volumes
-   docker system prune -a --volumes
-   ```
-
-### 🎮 Using the System
-
-Once your services are running (either via Docker Compose or Docker Swarm), follow these steps:
-
-#### Option 1: Easy Web Interface (Recommended)
-
-1. 🌐 **Open your browser** and go to `http://localhost:8080`
-
-2. 📝 **Fill out the registration form**:
-   - Username
-   - Email
-   - Password
-   - Confirm Password
-
-3. 🚀 **Click "Create Account & Get Stream Key"** and you'll be redirected to a success page with your stream key
-
-4. 📋 **Copy your stream key** using the convenient copy button
-
-5. 📺 **Follow the on-page instructions** to start streaming with OBS or ffmpeg
-
-#### Option 2: API Registration (Advanced Users)
-
-1. 📝 Register for a streaming key by sending a POST request to `localhost:8080/api/auth/register`. There are many ways that you may do this.
-   You may use Postman, Insomnia, etc., or a classic curl command:
-
-   ```bash
-   curl -X POST http://localhost:8080/api/auth/register \
-     -H "Content-Type: application/json" \
-     -d '{
-       "username": "yolo2",
-       "password": "mySuperSecret",
-       "confirmPassword": "mySuperSecret",
-       "email": "myEmail2@gmail.com"
-     }'
-   ```
-
-   You should see a response similar to:
-
-   ```json
-   {
-     "username": "yolo2",
-     "streamKey": "generated-stream-key"
-   }
-   ```
-
-2. 📋 Copy your stream key. You will need this to paste in obs or ffmpeg to start streaming.
-3. 📺 Start streaming using your favorite streaming client (e.g., OBS, ffmpeg) with the RTMP URL:
-
-   ```text
-   rtmp://localhost:1935/live
-   ```
-
-   In the stream key field, paste your generated stream key.
-
-4. ▶️ Click on start stream in OBS or run the following ffmpeg command:
-
-   ```bash
-   ffmpeg -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=1000:sample_rate=44100 -c:v libx264 -preset veryfast -c:a aac -f flv rtmp://localhost/live/<your-stream-key>
-   ```
-
-5. 👀 View the stream using a media player that supports HLS (e.g., VLC, ffplay) with the URL:
-
-   ```text
-   http://localhost:9090/live/stream_<your-username>/index.m3u8
-
-   Example:
-   http://localhost:9090/live/stream_yolo2/index.m3u8
-   ```
+# Remove stack when done
+docker stack rm fault-recovery-demo
+```
 
 ---
 
@@ -457,10 +210,8 @@ This project demonstrates the following fault recovery tactics in a distributed 
 
 | Endpoint | Method | Description | Fault Recovery Feature |
 |----------|--------|-------------|------------------------|
-| `/` or `/health` | GET | Health check endpoint for individual replicas | ✅ Fault Detection |
-| `/api/auth/register` | POST | Register new user and generate stream key | ✅ Load Balanced across replicas |
-| `/api/stream/start` | POST | Validate stream key during NGINX on_publish (param: `name`) | ✅ Active Redundancy |
-| `/api/stream/stop` | POST | Validate stream key during NGINX on_publish_done (param: `name`) | ✅ Active Redundancy |
+| `/health` | GET | Health check endpoint for individual replicas | ✅ Fault Detection |
+| `/api/auth/register` | POST | Critical process - user registration service | ✅ Load Balanced across replicas |
 | `/heartbeat/status` | GET | Get health status of all application replicas | ✅ System-wide Health Monitoring |
 | `/heartbeat/primary` | GET | Get current primary replica information | ✅ Primary Replica Tracking |
 | `/health/status` | GET | Get detailed fault recovery status | ✅ Fault Recovery Dashboard |
@@ -472,7 +223,7 @@ This project demonstrates the following fault recovery tactics in a distributed 
 | `/simulation/status` | GET | Get current failure simulation status | ✅ Testing Status |
 | `/simulation/reset` | POST | Reset all simulated failures | ✅ Testing Reset |
 
-### 📝 Registration Request Format
+### 📝 Critical Process Request Format (User Registration)
 
 ```json
 {
@@ -483,12 +234,14 @@ This project demonstrates the following fault recovery tactics in a distributed 
 }
 ```
 
-### 📤 Registration Response Format
+### 📤 Critical Process Response Format
 
 ```json
 {
+  "message": "Registration successful",
   "username": "your_username",
-  "streamKey": "generated-16-char-key"
+  "email": "your_email@example.com",
+  "streamKey": "generated-stream-key"
 }
 ```
 
@@ -568,105 +321,4 @@ You can test the fault recovery system by:
    
    # Verify recovery
    curl http://localhost:8080/heartbeat/status
-   ```
-
-## 📚 References
-
-- 🐳 [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
-- 🍃 [Spring Boot Actuator Health Checks](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
-- 🛡️ [Fault Tolerance Patterns](https://martinfowler.com/articles/patterns-of-resilience.html)
-- 🏗️ [Container Orchestration and Fault Recovery](https://kubernetes.io/docs/concepts/architecture/)
-- 📖 [Building Resilient Microservices](https://www.oreilly.com/library/view/building-microservices/9781491950340/)
-- ❤️ [Heartbeat Monitoring Patterns](https://microservices.io/patterns/observability/health-check-api.html)
-
-## 🔄 Redundancy & Heartbeat Monitoring
-
-This project implements Docker Swarm-based redundancy with integrated heartbeat monitoring to provide high availability and fault tolerance:
-
-### 🔄 Redundancy Features
-
-- 🍃 **Multiple Spring Boot Replicas**: The application runs with two separate replicas (primary and secondary) to ensure continuous service even if one instance fails
-- ⚖️ **Docker Swarm Load Balancing**: Automatic distribution of traffic across healthy replicas
-- ⚡ **Automatic Failover**: When a replica fails its health check, the HeartbeatService automatically promotes a healthy replica as the new primary
-- 🛠️ **Self-healing**: Failed containers are automatically restarted by Docker Swarm
-- 🎯 **Threshold-based Detection**: Configurable failure and recovery thresholds prevent false positives
-
-### ❤️ Heartbeat Monitoring
-
-Each Spring Boot replica includes an integrated HeartbeatService that provides:
-
-- 🕐 **Periodic Health Checks**: Checks the health of all replicas every 10 seconds (configurable)
-- 👑 **Primary Replica Management**: Tracks and automatically fails over the primary replica when necessary
-- ❌ **Failure Threshold Detection**: Requires multiple consecutive failures before marking a replica as DOWN
-- ✅ **Recovery Threshold Detection**: Requires multiple consecutive successes before marking a replica as UP
-- 📋 **Event Logging**: Records all failover events with timestamps for audit purposes
-- 📊 **Status Dashboard**: Exposes multiple endpoints for monitoring system health
-- 🧪 **Integration with FailureSimulator**: Supports controlled chaos engineering for testing fault recovery
-
-### 📊 Heartbeat Status Response Format
-
-```json
-{
-  "system_status": "operational",
-  "healthy_replicas": 2,
-  "total_replicas": 2,
-  "primary_replica": "http://spring-boot-app-primary:8080/health",
-  "primary_replica_index": 0,
-  "replicas": {
-    "replica_0": {
-      "status": "UP",
-      "url": "http://spring-boot-app-primary:8080/health",
-      "is_primary": true,
-      "consecutive_failures": 0,
-      "consecutive_successes": 5,
-      "last_checked": "2025-01-18T10:30:45"
-    },
-    "replica_1": {
-      "status": "UP",
-      "url": "http://spring-boot-app-secondary:8080/health",
-      "is_primary": false,
-      "consecutive_failures": 0,
-      "consecutive_successes": 5,
-      "last_checked": "2025-01-18T10:30:45"
-    }
-  },
-  "recent_failover_events": [
-    {
-      "timestamp": "2025-01-18T10:25:30",
-      "replica_url": "http://spring-boot-app-primary:8080/health",
-      "event_type": "RECOVERY",
-      "description": "Replica marked as UP after 3 consecutive successes"
-    }
-  ]
-}
-```
-
-### 🧪 Testing Failover
-
-You can test the failover capability by:
-
-1. ✅ Check the current status of all replicas:
-
-   ```bash
-   curl http://localhost:8080/heartbeat/status
-   ```
-
-2. 💥 Simulate a failure by stopping one of the Spring Boot replicas:
-
-   ```bash
-   docker service scale streaming-auth_spring-boot-app-primary=0
-   ```
-
-3. 🔍 Check the heartbeat status again to see the change:
-
-   ```bash
-   curl http://localhost:8081/heartbeat/status
-   ```
-
-4. ✨ Verify that the streaming service continues to work despite the failure
-
-5. 🔄 Restore the full capacity:
-
-   ```bash
-   docker service scale streaming-auth_spring-boot-app-primary=1
    ```
