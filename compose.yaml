@@ -1,4 +1,19 @@
 services:
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - spring-boot-app-primary
+    restart: unless-stopped
+
   # MySQL database
   mysql:
     image: mysql:8.3

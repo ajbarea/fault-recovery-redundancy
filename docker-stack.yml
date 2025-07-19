@@ -1,6 +1,18 @@
 version: '3.8'
 
 services:
+  # Frontend React Application
+  frontend:
+    image: frontend:latest
+    ports:
+      - "5173:5173"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - frontend
+
   # MySQL database
   mysql:
     image: mysql:8.3
