@@ -12,6 +12,7 @@ const RegistrationForm: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [streamKey, setStreamKey] = useState<string | null>(null);
     const [registeredUsername, setRegisteredUsername] = useState<string | null>(null);
+    const [showToast, setShowToast] = useState(false);
 
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -60,23 +61,112 @@ const RegistrationForm: React.FC = () => {
     };
 
     if (streamKey && registeredUsername) {
+        const rtmpUrl = `rtmp://localhost:1935/live`;
         const streamUrl = `http://localhost:9090/live/stream_${registeredUsername}/index.m3u8`;
+
+        const copyToClipboard = (text: string) => {
+            navigator.clipboard.writeText(text);
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 2000);
+        };
+
         return (
             <div className="registration-form-container">
-                <div className="registration-form">
-                    <h2>Registration Successful!</h2>
-                    <p>Here is your stream key:</p>
-                    <div className="stream-key-container">
-                        <p>Username: {registeredUsername}</p>
-                        <p>Stream Key: {streamKey}</p>
-                        <p>RTMP URL: rtmp://localhost:1935/live</p>
-                        <p>Your stream URL (after starting): <a href={streamUrl}>{streamUrl}</a></p>
+                {showToast && (
+                    <div className="toast">
+                        ✅ Copied!
+                    </div>
+                )}
+                <div className="success-container">
+                    <div className="success-header">
+                        <div className="success-icon">✅</div>
+                        <h1 className="success-title">Registration Successful!</h1>
+                        <p className="success-subtitle">Your streaming credentials are ready</p>
+                    </div>
+
+                    <div className="credentials-section">
+                        <div className="credential-item">
+                            <label>Username</label>
+                            <div className="credential-value">
+                                <span className="value-text">{registeredUsername}</span>
+                                <button
+                                    onClick={() => copyToClipboard(registeredUsername)}
+                                    className="copy-btn-small"
+                                    title="Copy username"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="credential-item featured">
+                            <label>Stream Key</label>
+                            <div className="credential-value">
+                                <span className="value-text stream-key-text">{streamKey}</span>
+                                <button
+                                    onClick={() => copyToClipboard(streamKey)}
+                                    className="copy-btn-small"
+                                    title="Copy stream key"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="credential-item">
+                            <label>RTMP URL</label>
+                            <div className="credential-value">
+                                <span className="value-text">{rtmpUrl}</span>
+                                <button
+                                    onClick={() => copyToClipboard(rtmpUrl)}
+                                    className="copy-btn-small"
+                                    title="Copy RTMP URL"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="credential-item">
+                            <label>Stream Playback URL</label>
+                            <div className="credential-value">
+                                <a href={streamUrl} className="value-text stream-url" target="_blank" rel="noopener noreferrer">
+                                    {streamUrl}
+                                </a>
+                                <button
+                                    onClick={() => copyToClipboard(streamUrl)}
+                                    className="copy-btn-small"
+                                    title="Copy stream URL"
+                                >
+                                    📋
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="action-buttons">
                         <button
-                            onClick={() => navigator.clipboard.writeText(streamKey)}
-                            className="copy-button"
+                            onClick={() => copyToClipboard(streamKey)}
+                            className="primary-button"
                         >
-                            Copy Stream Key
+                            📋 Copy Stream Key
                         </button>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="secondary-button"
+                        >
+                            🔄 Register Another User
+                        </button>
+                    </div>
+
+                    <div className="streaming-instructions">
+                        <h3>How to start streaming:</h3>
+                        <ol>
+                            <li>Open your streaming software (OBS, XSplit, etc.)</li>
+                            <li>Use the RTMP URL as your server</li>
+                            <li>Use your Stream Key as the stream key</li>
+                            <li>Start streaming and share your playback URL!</li>
+                        </ol>
                     </div>
                 </div>
             </div>
