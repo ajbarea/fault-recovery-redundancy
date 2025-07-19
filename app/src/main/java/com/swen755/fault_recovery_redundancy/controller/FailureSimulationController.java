@@ -1,9 +1,9 @@
 package com.swen755.fault_recovery_redundancy.controller;
 
+import com.swen755.fault_recovery_redundancy.service.FailureSimulator;
+import com.swen755.fault_recovery_redundancy.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.swen755.fault_recovery_redundancy.service.FailureSimulator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,9 +12,19 @@ import java.util.Map;
 @RequestMapping("/simulation")
 public class FailureSimulationController {
     private final FailureSimulator failureSimulator;
+    private final UserService userService;
 
-    public FailureSimulationController(FailureSimulator failureSimulator) {
+    public FailureSimulationController(FailureSimulator failureSimulator, UserService userService) {
         this.failureSimulator = failureSimulator;
+        this.userService = userService;
+    }
+
+    @DeleteMapping("/users")
+    public ResponseEntity<Map<String, Object>> deleteAllUsers() {
+        userService.deleteAllUsers();
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "All users have been deleted.");
+        return ResponseEntity.ok(response);
     }
 
     /**

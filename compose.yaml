@@ -26,6 +26,8 @@ services:
       - "9090:9090"
     volumes:
       - ./nginx-rtmp/html:/usr/share/nginx/html
+    depends_on:
+      - spring-boot-app-primary
     restart: unless-stopped
 
   # Spring Boot Application - Primary Replica
@@ -33,7 +35,6 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
-    image: spring-boot-app:latest
     container_name: spring-boot-app-primary
     ports:
       - "8080:8080"
@@ -57,7 +58,6 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
-    image: spring-boot-app:latest
     container_name: spring-boot-app-secondary
     ports:
       - "8081:8080"

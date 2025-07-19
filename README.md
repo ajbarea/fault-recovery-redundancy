@@ -25,11 +25,50 @@ This project demonstrates:
 
 ## ⚡ Quick Start
 
+### Prerequisites
+
+- Java and Maven
+- Docker and Docker Compose
+- Node.js and npm
+- OBS Studio
+- VLC Media Player
+
+### 1. Build and Start the Application
+
 ```bash
-cd app
-mvn compile
-mvn test
+# Start all services
+docker compose up -d --build
+
+# Start the frontend development server
+cd frontend
+npm run dev
 ```
+
+### 2. Set Up Streaming
+
+1. **Get your stream credentials:**
+   - Register for a stream key through the frontend UX
+   - Note your generated server URL and stream key
+
+2. **Configure OBS Studio:**
+   - Open OBS Studio
+   - Go to Settings → Stream
+   - Enter your server URL and stream key
+   - Click Apply and OK
+
+3. **Start streaming:**
+   - Click "Start Streaming" in OBS
+
+### 3. View the Stream
+
+1. **Open VLC Media Player**
+2. **Access the stream:**
+   - Go to Media → Open Network Stream...
+   - Enter the network URL: `http://localhost:9090/live/stream_<username>/index.m3u8`
+   - Replace `<username>` with your actual username
+   - Click Play
+
+You should now have a fully functional streaming setup! 🎥
 
 ## 🏛️ Architecture
 
@@ -38,114 +77,109 @@ mvn test
 ![livestreamingarch.png](./docs/livestreamingarch.png)
 
 ### 📊 Class Diagram
+
 ```mermaid
-%%{init: {'theme': 'default', 'themeVariables': { 'lineColor': '#FFD700' }}}%%
 classDiagram
-   class RegisterRequest {
-      +String username
-      +String password
-      +String confirmPassword
-      +String email
-   }
+    title Fault Recovery and Redundancy System
 
-   class User {
-      +UUID id
-      +String username
-      +String password
-      +String email
-      +String streamKey
-      +boolean active
-      +generateStreamKey()
-   }
+    class AuthController {
+        +register(RegisterRequest, BindingResult): ResponseEntity
+    }
+    class FailureSimulationController {
+        +enableSimulation(): ResponseEntity
+        +disableSimulation(): ResponseEntity
+        +simulateFailure(String): ResponseEntity
+        +recoverReplica(String): ResponseEntity
+        +getSimulationStatus(): ResponseEntity
+        +resetSimulation(): ResponseEntity
+    }
+    class HealthController {
+        +healthCheck(): ResponseEntity
+        +faultRecoveryStatus(): ResponseEntity
+        +replicasHealth(): ResponseEntity
+    }
+    class HeartbeatController {
+        +getStatus(): ResponseEntity
+        +getPrimaryReplica(): ResponseEntity
+    }
+    class StreamController {
+        +start(String): ResponseEntity
+        +stop(String): ResponseEntity
+        +redirect(): ResponseEntity
+    }
 
-   class UserRepository {
-      +findByUsername(String)
-      +findByStreamKey(String)
-   }
+    class UserService {
+        -userRepository: UserRepository
+        -passwordEncoder: PasswordEncoder
+        +register(RegisterRequest): User
+        +findByStreamKey(String): User
+    }
+    class HeartbeatService {
+        -restTemplate: RestTemplate
+        -failureSimulator: FailureSimulator
+        -replicaUrls: List
+        -replicaStatusMap: Map
+        +performHeartbeatAndFaultRecovery()*
+        +getCurrentPrimaryReplica(): String
+        +getHealthyReplicas(): List
+        +isSystemOperational(): boolean
+    }
+    class FailureSimulator {
+        -simulationEnabled: boolean
+        -failureProbability: double
+        +shouldSimulateFailure(String): boolean
+        +simulateFailure(String)
+        +recoverReplica(String)
+    }
 
-   class UserService {
-      -UserRepository userRepository
-      -PasswordEncoder passwordEncoder
-      +register(RegisterRequest)
-      +findByStreamKey(String)
-   }
+    class User {
+        -id: UUID
+        -username: String
+        -password: String
+        -email: String
+        -streamKey: String
+        +generateStreamKey()
+    }
+    class RegisterRequest {
+        +username: String
+        +password: String
+        +confirmPassword: String
+        +email: String
+    }
+    class UserRepository {
+        +findByUsername(String): User
+        +findByStreamKey(String): User
+    }
+    <<Repository>> UserRepository
+    
+    class JpaRepository
+    class RestTemplate
+    class PasswordEncoder
 
-   class AuthController {
-      -UserService userService
-      +register(RegisterRequest)
-   }
+    %% --- Relationships ---
 
-   class StreamController {
-      -UserService userService
-      +start(String)
-      +stop(String)
-      +redirect()
-   }
+    %% Controller Dependencies
+    AuthController --> UserService
+    FailureSimulationController --> FailureSimulator
+    HealthController --> HeartbeatService
+    HeartbeatController --> HeartbeatService
+    StreamController --> UserService
 
-   class HealthController {
-      -HeartbeatService heartbeatService
-      +healthCheck()
-      +faultRecoveryStatus()
-      +replicasHealth()
-   }
+    %% Service Dependencies
+    UserService --> UserRepository
+    UserService --> PasswordEncoder
+    HeartbeatService --> FailureSimulator
+    HeartbeatService --> RestTemplate
 
-   class HeartbeatController {
-      -HeartbeatService heartbeatService
-      +getStatus()
-      +getPrimaryReplica()
-   }
+    %% Data Layer
+    UserService ..> User : creates & uses
+    StreamController ..> User : uses
+    UserRepository ..> User : manages
+    UserRepository --|> JpaRepository
 
-   class HeartbeatService {
-      -List~String~ replicaUrls
-      -Map~String, ReplicaStatus~ replicaStatusMap
-      -Map~String, Integer~ consecutiveFailures
-      -Map~String, Integer~ consecutiveSuccesses
-      -AtomicInteger primaryReplicaIndex
-      -FailureSimulator failureSimulator
-      +performHeartbeatAndFaultRecovery()
-      +checkReplicaHealth(String)
-      +getDetailedStatus()
-      +getHealthyReplicas()
-      +getCurrentPrimaryReplica()
-      +isSystemOperational()
-      +getReplicaHealth()
-      +getReplicaUrls()
-      +checkReplicas()
-   }
-
-   class FailureSimulationController {
-      -FailureSimulator failureSimulator
-      +enableSimulation()
-      +disableSimulation()
-      +simulateFailure(String)
-      +recoverReplica(String)
-      +getSimulationStatus()
-      +resetSimulation()
-   }
-
-   class FailureSimulator {
-      -boolean simulationEnabled
-      -Map~String, Boolean~ simulatedFailures
-      -double failureProbability
-      -double recoveryProbability
-      +setSimulationEnabled(boolean)
-      +isSimulationEnabled()
-      +simulateFailure(String)
-      +recoverReplica(String)
-      +shouldSimulateFailure(String)
-      +getSimulationStatus()
-      +resetAllFailures()
-   }
-
-   RegisterRequest --> UserService : used by
-   UserService --> UserRepository
-   UserService --> User
-   AuthController --> UserService
-   StreamController --> UserService
-   HealthController --> HeartbeatService
-   HeartbeatController --> HeartbeatService
-   FailureSimulationController --> FailureSimulator
-   HeartbeatService --> FailureSimulator
+    %% DTO Usage
+    AuthController ..> RegisterRequest : uses
+    UserService ..> RegisterRequest : uses
 ```
 
 ---
@@ -227,9 +261,13 @@ The project implements fault recovery with redundancy using the following compon
    cd fault-recovery-redundancy
    ```
 
-2. 🔨 Build the services using Docker Compose:
+2. 🔨 **Start the services** using Docker Compose:
 
    ```bash
+   # Build and start all services in detached mode
+   docker compose up -d --build
+   
+   # Alternative: Start without rebuild (if images already exist)
    docker compose up -d
    ```
 
@@ -239,24 +277,53 @@ The project implements fault recovery with redundancy using the following compon
    - 🍃 **Spring Boot application - Primary replica** on port 8080
    - 🍃 **Spring Boot application - Secondary replica** on port 8081
 
+3. ✅ **Verify services are running**:
+
+   ```bash
+   # Check service status
+   docker compose ps
+   
+   # View logs for all services
+   docker compose logs
+   
+   # View logs for a specific service
+   docker compose logs spring-boot-app-primary
+   ```
+
+4. 🛑 **Stop the services** when done:
+
+   ```bash
+   # Stop services but keep containers
+   docker compose stop
+   
+   # Stop and remove containers, networks
+   docker compose down
+   
+   # Stop and remove containers, networks, and volumes (complete cleanup)
+   docker compose down -v
+   
+   # Stop and remove containers, networks, volumes, and images
+   docker compose down -v --rmi all
+   ```
+
 ### 🐝 Docker Swarm (High Availability)
 
 For production environments or to enable high availability with redundancy:
 
-1. 🚀 Initialize Docker Swarm (if not already initialized):
+1. 🚀 **Initialize Docker Swarm** (if not already initialized):
 
    ```bash
    docker swarm init
    ```
 
-2. 🔨 Build the images:
+2. 🔨 **Build the images**:
 
    ```bash
    docker build -t spring-boot-app:latest ./app
    docker build -t nginx-rtmp-server:latest ./nginx-rtmp
    ```
 
-3. 🚀 Deploy the stack:
+3. 🚀 **Deploy the stack**:
 
    ```bash
    docker stack deploy -c docker-stack.yml streaming-auth
@@ -268,21 +335,62 @@ For production environments or to enable high availability with redundancy:
    - 🍃 **Spring Boot application - Primary replica** (1 replica) on port 8080
    - 🍃 **Spring Boot application - Secondary replica** (1 replica) on port 8081
 
-4. ✅ Verify the services are running:
+4. ✅ **Verify the services are running**:
 
    ```bash
+   # Check stack services status
+   docker stack ls
+   
+   # List all services in the stack
    docker service ls
+   
+   # Check specific service details
+   docker service ps streaming-auth_spring-boot-app-primary
+   
+   # View service logs
+   docker service logs streaming-auth_spring-boot-app-primary
    ```
 
-5. 🩺 Check the health status of all replicas:
+5. 🩺 **Check the health status of all replicas**:
 
    ```bash
    curl http://localhost:8080/heartbeat/status
    ```
 
+6. 🛑 **Remove the stack** when done:
+
+   ```bash
+   # Remove the entire stack (stops and removes all services)
+   docker stack rm streaming-auth
+   
+   # Optional: Leave Docker Swarm mode (single node only)
+   docker swarm leave --force
+   
+   # Optional: Clean up unused images and volumes
+   docker system prune -a --volumes
+   ```
+
 ### 🎮 Using the System
 
 Once your services are running (either via Docker Compose or Docker Swarm), follow these steps:
+
+#### Option 1: Easy Web Interface (Recommended)
+
+1. 🌐 **Open your browser** and go to `http://localhost:8080`
+
+2. 📝 **Fill out the registration form**:
+   - Username
+   - Email
+   - Password
+   - Confirm Password
+
+3. 🚀 **Click "Create Account & Get Stream Key"** and you'll be redirected to a success page with your stream key
+
+4. 📋 **Copy your stream key** using the convenient copy button
+
+5. 📺 **Follow the on-page instructions** to start streaming with OBS or ffmpeg
+
+#### Option 2: API Registration (Advanced Users)
 
 1. 📝 Register for a streaming key by sending a POST request to `localhost:8080/api/auth/register`. There are many ways that you may do this.
    You may use Postman, Insomnia, etc., or a classic curl command:
@@ -311,7 +419,7 @@ Once your services are running (either via Docker Compose or Docker Swarm), foll
 3. 📺 Start streaming using your favorite streaming client (e.g., OBS, ffmpeg) with the RTMP URL:
 
    ```text
-   rtmp://localhost/live
+   rtmp://localhost:1935/live
    ```
 
    In the stream key field, paste your generated stream key.
@@ -538,16 +646,19 @@ Each Spring Boot replica includes an integrated HeartbeatService that provides:
 You can test the failover capability by:
 
 1. ✅ Check the current status of all replicas:
+
    ```bash
    curl http://localhost:8080/heartbeat/status
    ```
 
 2. 💥 Simulate a failure by stopping one of the Spring Boot replicas:
+
    ```bash
    docker service scale streaming-auth_spring-boot-app-primary=0
    ```
 
 3. 🔍 Check the heartbeat status again to see the change:
+
    ```bash
    curl http://localhost:8081/heartbeat/status
    ```
@@ -555,6 +666,7 @@ You can test the failover capability by:
 4. ✨ Verify that the streaming service continues to work despite the failure
 
 5. 🔄 Restore the full capacity:
+
    ```bash
    docker service scale streaming-auth_spring-boot-app-primary=1
    ```
