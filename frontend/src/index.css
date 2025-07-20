@@ -576,3 +576,91 @@ button[type="submit"]:hover {
     padding: 1rem;
   }
 }
+
+/* 
+Service Status Styles */
+.service-status {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.status-indicator.online {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+
+.status-indicator.offline {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.status-indicator.loading {
+  background: rgba(161, 161, 170, 0.1);
+  border: 1px solid rgba(161, 161, 170, 0.3);
+  color: #a1a1aa;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.online .status-dot {
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  animation: pulse-green 2s infinite;
+}
+
+.status-indicator.offline .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+.status-indicator.loading .status-dot {
+  background: #a1a1aa;
+  animation: pulse-gray 1.5s infinite;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.8);
+  }
+
+  100% {
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  }
+}
+
+@keyframes pulse-gray {
+  0% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
+}
