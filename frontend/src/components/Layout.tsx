@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import ServiceStatus from './ServiceStatus';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -27,7 +28,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </header>
             <main className="app-main">
-                {children}
+                <div className="page-container">
+                    <ServiceStatus />
+                    {children}
+                </div>
             </main>
         </div>
     );

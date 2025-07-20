@@ -26,7 +26,7 @@ const RegistrationPage: React.FC = () => {
     };
 
     return (
-        <div className="registration-page">
+        <>
             {showRegister ? (
                 <RegistrationForm
                     onRegisterSuccess={handleRegisterSuccess}
@@ -38,7 +38,7 @@ const RegistrationPage: React.FC = () => {
                     onSwitchToRegister={() => setShowRegister(true)}
                 />
             )}
-        </div>
+        </>
     );
 };
 
