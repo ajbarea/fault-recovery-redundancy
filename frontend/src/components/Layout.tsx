@@ -28,8 +28,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </header>
             <main className="app-main">
-                <ServiceStatus />
-                {children}
+                <div className="page-container">
+                    <ServiceStatus />
+                    {children}
+                </div>
             </main>
         </div>
     );

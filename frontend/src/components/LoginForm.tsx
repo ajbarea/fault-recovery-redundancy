@@ -32,13 +32,14 @@ const LoginForm: React.FC<{ onLoginSuccess: (data: LoginResponse) => void, onSwi
     return (
         <div className="registration-form-container">
             <form onSubmit={handleSubmit} className="registration-form">
-                <h2>Login to Your Account</h2>
-                {error && <p className="error">{error}</p>}
+                <h2 className="form-title">Login to Your Account</h2>
+                {error && <div className="form-error">{error}</div>}
                 <div className="form-group">
                     <label htmlFor="username">Username</label>
                     <input
                         type="text"
                         id="username"
+                        className="form-input"
                         value={username}
                         autoComplete='username'
                         onChange={(e) => setUsername(e.target.value)}
@@ -50,15 +51,20 @@ const LoginForm: React.FC<{ onLoginSuccess: (data: LoginResponse) => void, onSwi
                     <input
                         type="password"
                         id="password"
+                        className="form-input"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                     />
                 </div>
-                <button type="submit">Login</button>
-                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                    <span>Don't have an account? </span>
-                    <button type="button" className="secondary-button" onClick={onSwitchToRegister} style={{ padding: '0.5rem 1rem', fontSize: '1rem' }}>
+                <button type="submit" className="form-submit">Login</button>
+                <div className="auth-switch-container">
+                    <span className="auth-switch-text">Don't have an account? </span>
+                    <button
+                        type="button"
+                        className="btn-secondary auth-switch-button"
+                        onClick={onSwitchToRegister}
+                    >
                         Register
                     </button>
                 </div>

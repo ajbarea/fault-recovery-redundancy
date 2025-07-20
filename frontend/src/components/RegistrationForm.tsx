@@ -49,13 +49,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSuccess, 
     return (
         <div className="registration-form-container">
             <form onSubmit={handleSubmit} className="registration-form">
-                <h2>Register for a Stream Key</h2>
-                {error && <p className="error">{error}</p>}
+                <h2 className="form-title">Register for a Stream Key</h2>
+                {error && <div className="form-error">{error}</div>}
                 <div className="form-group">
                     <label htmlFor="email">Email</label>
                     <input
                         type="email"
                         id="email"
+                        className="form-input"
                         value={email}
                         autoComplete='email'
                         onChange={(e) => setEmail(e.target.value)}
@@ -67,6 +68,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSuccess, 
                     <input
                         type="text"
                         id="username"
+                        className="form-input"
                         value={username}
                         autoComplete='username'
                         onChange={(e) => setUsername(e.target.value)}
@@ -78,6 +80,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSuccess, 
                     <input
                         type="password"
                         id="password"
+                        className="form-input"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -88,20 +91,20 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegisterSuccess, 
                     <input
                         type="password"
                         id="confirmPassword"
+                        className="form-input"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                     />
                 </div>
 
-                <button type="submit">Register</button>
-                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                    <span>Already have an account? </span>
+                <button type="submit" className="form-submit">Register</button>
+                <div className="auth-switch-container">
+                    <span className="auth-switch-text">Already have an account? </span>
                     <button
                         type="button"
-                        className="secondary-button"
+                        className="btn-secondary auth-switch-button"
                         onClick={onSwitchToLogin}
-                        style={{ padding: '0.5rem 1rem', fontSize: '1rem' }}
                     >
                         Login
                     </button>
