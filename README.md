@@ -2,25 +2,99 @@
 
 ## 🔒 Description
 
-The motivation for this project is to demonstrate the implementation of **authentication and authorization architectural tactics** by integrating them into an existing technology — rather than building every component from scratch. Specifically, this prototype shows how to extend the functionality of the **NGINX RTMP module**, a lightweight media server, by connecting it to a **Spring Boot application** that enforces **secure streaming behavior**.
 
-Instead of developing a full live streaming service, this project uses **NGINX RTMP** as an off-the-shelf solution for handling **RTMP stream ingestion and playback**. Through its built-in **on_publish** and **on_publish_done** hooks, NGINX communicates with a **Spring Boot backend** that validates whether a stream should be allowed based on the **stream key** provided.
+   This project extends the previous live streaming project that was built for the [authentication and authorization assignment](https://github.com/ajbarea/authentication-and-authorization)
 
-The key requirement is that only **registered users with valid stream keys** are allowed to publish streams, while **viewers (the public) are not restricted from watching**. When a stream is started (**on_publish**), the Spring Boot service checks the key against a **MySQL-backed user database** and approves or rejects the request. When the stream ends (**on_publish_done**), the backend can optionally log or respond to the termination of the stream session.
+   In this enhanced version, we extend the system to address non-functional requirements of availability and reliability by incorporating fault recovery and failover mechanisms. Specifically, the Spring Boot authentication service and NGINX RTMP live streaming server are now replicated across two nodes — a primary (active) and a secondary (standby) — deployed on separate containers in a shared network environment.
 
-This project demonstrates:
+   A heartbeat monitor continuously probes both the active and standby services for their health status, showing when an instance goes down and another instance takes over.
 
-- The practical integration of multiple technologies to meet a specific **security requirement**
-- How to use **authentication and stream-level authorization** in a working system
-- How design decisions (like using **on_publish**) can be implemented and tested in a constrained, prototype setting
+### Goals
 
-Ultimately, this project emphasizes the real-world relevance of integrating and extending existing components to meet system-specific goals, fulfilling the assignment’s objective of not just designing, but **implementing and validating architectural tactics**.
+      - Ensure continuous uptime of the authentication and streaming services
+      - Minimize downtime with automatic redirection and passive failover
+      - Demonstrate fault tolerance using Docker Swarm and heartbeat monitoring
+
+### Docker Swarm-Based Architecture
+
+   To improve the system’s resilience and availability, we extend the architecture with passive failover and replication utilizing Docker Swarm. The reasons for choosing Docker Swarm include:
+
+   - The original system already used `docker-compose.yaml` to launch services
+   - Docker Swarm supports native service replication using the `replicas` key
+   - Built-in load balancing and health checking capabilities reduce complexity
+
+### Key Components
+
+   - **Spring Boot Authentication Service (x2 replicas)**  
+   Provides user authentication and authorization logic, replicated across two containers for failover.
+
+   - **NGINX RTMP Streaming Server (x2 replicas)**  
+   Handles RTMP ingest and video stream forwarding, deployed with redundancy.
+
+   - **Docker Swarm Load Balancer**  
+   Internal swarm routing ensures traffic is automatically redirected to healthy instances.
+
+   - **Heartbeat Monitor**  
+   A custom Java component that checks the health endpoints of each service and logs the status of active and standby nodes. It detects failures and logs failover activity.
+
+### Fault Tolerance Strategy
+
+- Docker Swarm ensures service-level replication with built-in health checks.
+- If the primary container becomes unresponsive, Swarm redirects traffic to another healthy replica.
+- The heartbeat monitor provides real-time insight into service health and failover events.
+
+### Desired learning outcome
+
+This extended version showcases how to take an existing microservice-based system and scale it with high availability and fault tolerance. It demonstrates that with minimal changes—thanks to Docker Swarm—services can be replicated and monitored, and failover mechanisms added without major refactoring.
+
+
+
+
+
 
 ## Architecture
 
-### Components Diagram
+### Recap of single instance Components Diagram 
 
 ![livestreamingarch.png](./docs/livestreamingarch.png)
+
+### High Level extended Fault Recovery and Redudant Component Diagram
+![faultRecoveryExtended](./docs/failover_extended.png)
+
+
+### Detailed extended Fault Recovery and Redudant Component Diagram
+```mermaid
+graph TD
+    Client[Streaming Client] -->|RTMP Stream| LB[Docker Swarm Routing Mesh]
+    Viewer[Stream Viewer] -->|HLS Stream| LB
+    Admin[System Admin] -->|Monitor| LB
+    
+    subgraph Docker Swarm
+        LB -->|RTMP| RTMP1[NGINX RTMP 1]
+        LB -->|RTMP| RTMP2[NGINX RTMP 2]
+        LB -->|HTTP| APP1[Spring Boot App 1]
+        LB -->|HTTP| APP2[Spring Boot App 2]
+        LB -->|HTTP| HB[Heartbeat Service]
+        
+        RTMP1 -->|Auth Check| APP1
+        RTMP1 -->|Auth Check| APP2
+        RTMP2 -->|Auth Check| APP1
+        RTMP2 -->|Auth Check| APP2
+        
+        HB -->|Health Check| APP1
+        HB -->|Health Check| APP2
+        
+        APP1 -->|Data| DB[MySQL]
+        APP2 -->|Data| DB
+        
+        RTMP1 -.->|Shared Storage| VOL[Shared Volume]
+        RTMP2 -.->|Shared Storage| VOL
+    end
+    
+    style LB fill:#f9f,stroke:#333,stroke-width:2px
+    style Docker Swarm fill:#e6f7ff,stroke:#333,stroke-width:1px
+    style VOL fill:#ffe6cc,stroke:#333,stroke-width:1px
+```
 
 ### Class Diagram
 
@@ -82,12 +156,57 @@ classDiagram
 ```
 
 ---
+### Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant Client as Streaming Client
+    participant Swarm as Docker Swarm
+    participant RTMP1 as NGINX RTMP 1
+    participant RTMP2 as NGINX RTMP 2
+    participant App1 as Spring Boot App 1
+    participant App2 as Spring Boot App 2
+    participant HB as Heartbeat Service
+    participant Admin as System Admin
+
+    Client->>Swarm: RTMP Stream
+    Swarm->>RTMP1: Route Stream
+    RTMP1->>App1: Validate Stream Key
+    App1->>RTMP1: Authorized
+    RTMP1->>Swarm: Stream Processing
+
+    Note over App1: App1 Fails
+
+    HB->>App1: Health Check
+    App1--xHB: No Response
+    HB->>HB: Mark App1 as DOWN
+    HB->>Admin: Report Status Change
+
+    Client->>Swarm: Continued Streaming
+    Swarm->>RTMP1: Route Stream
+    RTMP1->>App1: Validate Stream Key
+    App1--xRTMP1: No Response
+    RTMP1->>App2: Validate Stream Key (Failover)
+    App2->>RTMP1: Authorized
+    RTMP1->>Swarm: Stream Processing Continues
+
+    Note over App1: App1 Recovers
+
+    HB->>App1: Health Check
+    App1->>HB: Healthy Response
+    HB->>HB: Mark App1 as UP
+    HB->>Admin: Report Status Change
+
+    Note over Swarm: Load Balancing Resumes
+```
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - Java 17+
+- [Dotnet](https://dotnet.microsoft.com/en-us/) 
 - Maven
 - An IDE like IntelliJ IDEA or Eclipse
 - Docker
@@ -107,7 +226,7 @@ The project is built using Docker Swarm which contains the following services:
 
 ## 🏗️ How to Run
 
-### Docker Compose (Single Node)
+### High Available with Docker Swarm
 
 1. Clone the repository:
 
@@ -116,57 +235,34 @@ The project is built using Docker Swarm which contains the following services:
    cd authentication-and-authorization
    ```
 
-2. Build the services using Docker Compose:
-
-   ```bash
-   docker compose up -d
-   ```
-
-   This will start:
-   - **MySQL database** on port 3306
-   - **NGINX RTMP server** on ports 1935 (RTMP) and 9090 (HTTP)
-   - **Spring Boot application** on port 8080
-
-### Docker Swarm (High Availability)
-
-For production environments or to enable high availability with redundancy:
-
-1. Initialize Docker Swarm (if not already initialized):
-
-   ```bash
-   docker swarm init
-   ```
-
 2. Build the images:
 
    ```bash
    docker build -t spring-boot-app:latest ./app
    docker build -t nginx-rtmp-server:latest ./nginx-rtmp
    ```
-
-3. Deploy the stack:
+3. Initalize Docker Swarm if not already initalized
 
    ```bash
-   docker stack deploy -c docker-stack.yml streaming-auth
+   docker swarm init
+   ```
+
+4. Deploy the stack
+
+   ```bash
+   docker stack deploy -c docker-stack.yml mystack
    ```
 
    This will start:
-   - **MySQL database** (1 replica)
-   - **NGINX RTMP server** (2 replicas) on ports 1935 (RTMP) and 9090 (HTTP)
-   - **Spring Boot application** (2 replicas)
-   - **Heartbeat service** (1 replica) on port 8081
+   - **MySQL database** on port 3306
+   - **NGINX RTMP server** on ports 1935 (RTMP)
+   - **NGINX Server** on port 9090(HTTP)
+   - **Spring Boot application** on port 8080 (HTTP)
 
-4. Verify the services are running:
-
-   ```bash
+5. Wait for all replicas to be up by checking
+```bash
    docker service ls
-   ```
-
-5. Check the health status of all replicas:
-
-   ```bash
-   curl http://localhost:8081/heartbeat/status
-   ```
+```
 
 3. Register for a streaming key by sending a POST request to `localhost:8080/api/auth/register`. There are many ways that you may do this.
    You may use Postman, Insomnia, etc., or a classic curl command:
@@ -214,8 +310,49 @@ For production environments or to enable high availability with redundancy:
    Example:
    http://localhost:9090/live/stream_yolo2/index.m3u8
    ```
-
 ---
+
+
+## Fault recovery and redunancy tatic testings
+In this project we utilized choas engineering that simulated the fault and attempt to take down the spring boot and nginx services 
+using choas engineering techniques. Such techniques involves:
+ - Stopping a container
+ - Stopping the container's network
+ - Introducing delay in the network
+ - Max out the CPU resource
+ - Max out the memory
+ - Add delay in the network response
+ - Running all stressor with multiple instances (stress-ng)
+
+ The chaos testings are done by hooking into the docker container through docker's api and introduced the choas.
+
+ To run the choas 
+ 1. Cd into the choas folder
+ ```bash
+   cd choas
+```
+2. Run the choas C# application - you need to download dotnet first in the dependency section
+```bash
+   dotnet run
+```
+
+## Sample output of Running the choas
+![sample_choas](./docs/choas_sample.png)
+
+In the above screenshot, we can see various chaos engineering method being employed to knock the service offline. 
+If we look at the top, we can see the service got stopped
+
+## Sample output of recovery through Docker Swarm
+![sample_restart](./docs/container_restarting.png)
+In this screenshot, we can see the container restarted after one of the replicas was killed
+
+## Results from the heartbeat monitors
+ - suggest implement a heartbeat monitor that monitor both services and their replications as well as their up and down status using the docker api in c#
+ ```bash
+ using Docker.DotNet;
+using Docker.DotNet.Models;
+```
+
 
 ## ✔️ Security Tactics Demonstrated
 

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  spring-boot-app:
+    image: spring-boot-app:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: mypassword
+      JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true"
+    ports:
+      - "8080:8080"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    driver: overlay

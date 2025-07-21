@@ -1,11 +1,20 @@
 spring:
   application:
-      name: authentication-and-authorization
+    name: streaming-auth-service
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      initialization-fail-timeout: 60000
+      connection-timeout: 60000
+      maximum-pool-size: 5
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+  
+  server:
+    address: 0.0.0.0
