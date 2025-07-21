@@ -51,17 +51,17 @@ while (true)
                 await choasEngineering.StopContainerNetwork(container.ID);
                 break;
 
-            case 2:
-                //run all stressors
-                int totalInstances = rand.Next(3, 5);
-                //random between seconds and minutes
-                //if 1 do second else minute
-                string timeout = rand.Next(1, 3) == 1 ? $"{rand.Next(5, 16)}s" : $"{rand.Next(1, 6)}m";
-                Console.WriteLine($"Running all stressors on container: {container.ID} with {totalInstances} instances for {timeout}");
-                await choasEngineering.RunAllStressAsync(container.ID, totalInstances, timeout);
+            // case 2:
+            //     //run all stressors
+            //     int totalInstances = rand.Next(3, 5);
+            //     //random between seconds and minutes
+            //     //if 1 do second else minute
+            //     string timeout = rand.Next(1, 3) == 1 ? $"{rand.Next(5, 16)}s" : $"{rand.Next(1, 6)}m";
+            //     Console.WriteLine($"Running all stressors on container: {container.ID} with {totalInstances} instances for {timeout}");
+            //     await choasEngineering.RunAllStressAsync(container.ID, totalInstances, timeout);
 
                 break;
-            case 3:
+            case 2:
                 // stress the cpu
                 int cpu = rand.Next(1, 5); // random CPU count between 1 and 4
                 int seconds = rand.Next(5, 16); // random duration between 5 and 15 seconds
@@ -69,7 +69,7 @@ while (true)
                 await choasEngineering.RunStressCPUAsync(container.ID, cpu, seconds);
                 break;
 
-            case 4:
+            case 3:
                 // stress the memory
                 int totalVMB = rand.Next(1, 5); // random total VMB between 1 and 4
                 int memorySizeMB = rand.Next(100, 501); // random memory size between 100MB and 500MB
@@ -78,14 +78,12 @@ while (true)
                 await choasEngineering.RunStressMemoryAsync(container.ID, totalVMB, memorySizeMB, seconds);
                 break;
 
-            case 5:
+            case 4:
                 //introducing delay on the network
                 int delaySeconds = rand.Next(10, 30); // random delay between 10 and 30 seconds
                 Console.WriteLine($"Introducing network delay on container: {container.ID} for {delaySeconds} seconds");
                 await choasEngineering.AddNetworkDelayAsync(container.ID, delaySeconds);
                 break;
-            
-
                 // more later?
 
         }
