@@ -27,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/auth/register", "/", "/api/stream/start", "/api/stream/stop","/api/stream/stream_*").permitAll()
+                        .requestMatchers("/api/auth/register", "/", "health","/api/stream/start", "/api/stream/stop","/api/stream/stream_*").permitAll()
                         .anyRequest().authenticated() // All other requests require authentication
                 )
                 .httpBasic(basic -> {
