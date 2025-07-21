@@ -53,6 +53,7 @@ This project enhances the [authentication and authenticate livestreaming system]
 - **Docker Swarm** – Orchestration and load balancing  
 - **ffmpeg / OBS** – Streaming input  
 - **Docker.DotNet** – .NET API to interact with Docker /  Docker Swarm
+- **stress-ng** – Tool used to apply CPU, memory, I/O, and network stress for chaos engineering and fault injection
 
 ---
 

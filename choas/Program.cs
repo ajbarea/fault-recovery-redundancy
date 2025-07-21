@@ -32,7 +32,7 @@ while (true)
         }
 
         //randomly select a choas engineering action
-        int maxAction = 5;
+        int maxAction = 6;
 
         //randomly select an action
         int action = rand.Next(maxAction);
@@ -49,17 +49,6 @@ while (true)
                 //stopping the container's network
                 Console.WriteLine($"Stopping container network: {container.ID}");
                 await choasEngineering.StopContainerNetwork(container.ID);
-                break;
-
-            // case 2:
-            //     //run all stressors
-            //     int totalInstances = rand.Next(3, 5);
-            //     //random between seconds and minutes
-            //     //if 1 do second else minute
-            //     string timeout = rand.Next(1, 3) == 1 ? $"{rand.Next(5, 16)}s" : $"{rand.Next(1, 6)}m";
-            //     Console.WriteLine($"Running all stressors on container: {container.ID} with {totalInstances} instances for {timeout}");
-            //     await choasEngineering.RunAllStressAsync(container.ID, totalInstances, timeout);
-
                 break;
             case 2:
                 // stress the cpu
@@ -84,7 +73,16 @@ while (true)
                 Console.WriteLine($"Introducing network delay on container: {container.ID} for {delaySeconds} seconds");
                 await choasEngineering.AddNetworkDelayAsync(container.ID, delaySeconds);
                 break;
-                // more later?
+            case 5:
+                //run all stressors
+                int totalInstances = rand.Next(3, 5);
+                //random between seconds and minutes
+                //if 1 do second else minute
+                string timeout = rand.Next(1, 3) == 1 ? $"{rand.Next(5, 16)}s" : $"{rand.Next(1, 6)}m";
+                Console.WriteLine($"Running all stressors on container: {container.ID} with {totalInstances} instances for {timeout}");
+                await choasEngineering.RunAllStressAsync(container.ID, totalInstances, timeout);
+                break;
+                //more later?
 
         }
 
