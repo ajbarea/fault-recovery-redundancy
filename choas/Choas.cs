@@ -77,7 +77,7 @@ public class Choas
 
     public async Task RunAllStressAsync(string containerId, int totalInstances, string timeout)
     {
-        string command = $"stress-ng --cpu {totalInstances} --matrix {totalInstances} --mq {totalInstances} -t {timeout}"
+        string command = $"stress-ng --cpu {totalInstances} --matrix {totalInstances} --mq {totalInstances} -t {timeout}";
        // string command = $"stress-ng --all {totalInstances} --timeout {timeout}";
         await ExecInContainerAsync(containerId, command);
     }

@@ -120,7 +120,11 @@ The monitor service:
 ```
 
 ## Sample Health Monitoring
+### All service healthy example
 ![health_monitoring_sample](./docs/health_monitoring.png)
+
+### An degrade in service example
+![degrade_health](./docs/health_degrade.png)
 
 ---
 
