@@ -119,6 +119,9 @@ The monitor service:
    dotnet run
 ```
 
+## Sample Health Monitoring
+![health_monitoring_sample](./docs/health_monitoring.png)
+
 ---
 
 ## Chaos Simulation
@@ -139,9 +142,7 @@ dotnet run
 
 ---
 
-## Sample Outputs
-
-### Chaos Attack Log
+### Sample Chaos running
 
 ![sample_choas](./docs/choas_sample.png)
 

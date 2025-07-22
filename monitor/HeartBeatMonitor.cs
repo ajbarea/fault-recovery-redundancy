@@ -1,6 +1,9 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class HeartBeatMonitor
 {
@@ -21,6 +24,7 @@ public class HeartBeatMonitor
         _serviceStates = new Dictionary<string, ServiceState>();
     }
 
+    //get the docker uri based on the user's system
     private string GetDockerUri()
     {
         if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -34,6 +38,7 @@ public class HeartBeatMonitor
     public async Task MonitorAsync()
     {
         Console.WriteLine("Connecting to Docker...");
+        Console.WriteLine("Monitoring services: \n- mystack_spring-boot-app\n- mystack_nginx-rtmp");
 
         var services = await _dockerClient.Swarm.ListServicesAsync(new ServicesListParameters
         {
@@ -54,15 +59,9 @@ public class HeartBeatMonitor
                 LastUpdated = DateTime.UtcNow
             };
 
-            Console.WriteLine($"Update Status: {updateState}, Last Updated: {_serviceStates[service.Spec.Name].LastUpdated}");
+            Console.WriteLine($"Last Updated: {_serviceStates[service.Spec.Name].LastUpdated}");
 
-            // Correct Filter Format
-            var taskFilters = new Dictionary<string, IList<string>>
-            {
-                { "service", new List<string> { service.ID } }
-            };
-
-           var tasks = await _dockerClient.Tasks.ListAsync(new TasksListParameters
+            var tasks = await _dockerClient.Tasks.ListAsync(new TasksListParameters
             {
                 Filters = new Dictionary<string, IDictionary<string, bool>>
                 {
@@ -70,31 +69,74 @@ public class HeartBeatMonitor
                 }
             });
 
-            var taskStateGroups = tasks
-            .GroupBy(t =>
-            {
-                if (t.Status == null)
-                    return "unknown";
-
-                return t.Status.State.ToString().ToLower();
-            })
-            .ToDictionary(g => g.Key, g => g.Count());
-
-            var totalReplicas = service.Spec.Mode?.Replicated?.Replicas ?? 0;
+            ulong totalReplicas = service.Spec.Mode?.Replicated?.Replicas ?? 0;
 
             Console.WriteLine($"Desired Replicas: {totalReplicas}");
             Console.WriteLine($"Total Tasks Found: {tasks.Count}");
 
-            foreach (var stateGroup in taskStateGroups)
+            // Group tasks by state
+            var groupedTasks = tasks
+                .GroupBy(t => t.Status?.State.ToString().ToLower() ?? "unknown")
+                .OrderBy(g => g.Key);
+
+            Dictionary<string, int> stateCounts = new();
+            foreach (var group in groupedTasks)
             {
-                Console.WriteLine($"  {stateGroup.Key.ToUpper()}: {stateGroup.Value}");
+                string stateName = group.Key.ToUpper();
+                int count = group.Count();
+                stateCounts[stateName] = count;
+
+                if(stateName == "COMPLETE") {
+                    Console.WriteLine($"\n  ▶️ {stateName}: {count}");
+
+                } else if(stateName == "FAILED"){
+                    Console.WriteLine($"\n  ❌ {stateName}: {count}");
+                } else if(stateName == "RUNNING") {
+                    Console.WriteLine($"\n  ✅ {stateName}: {count}");
+                } else {
+                    Console.WriteLine($"\nUNKNOWN:  {stateName}: {count}");
+                }
+
+
+                foreach (var task in group)
+                {
+                    string containerId = task.Status?.ContainerStatus?.ContainerID ?? "n/a";
+                    string message = task.Status?.Err ?? "No error";
+                    string node = task.NodeID ?? "unknown-node";
+                    string shortId = task.ID.Substring(0, 12);
+
+                    Console.WriteLine($"    - TaskID: {shortId} | Container: {containerId} | Node: {node} | Message: {message}");
+                }
             }
 
-            if (taskStateGroups.TryGetValue("running", out int running) && running < (int)totalReplicas)
+            int running = stateCounts.TryGetValue("RUNNING", out var val) ? val : 0;
+            string serviceHealthStatus;
+
+            if ((ulong)running == totalReplicas)
             {
-                Console.WriteLine($"WARNING: Only {running} of {totalReplicas} replicas are running");
+                Console.ForegroundColor = ConsoleColor.Green;
+                serviceHealthStatus = "✅ Healthy - All replicas are running";
+                Console.WriteLine($"Service Health Status: {serviceHealthStatus}");
+                Console.ResetColor();
             }
+            else if ((ulong)running < totalReplicas)
+            {
+                ulong diff = totalReplicas - (ulong)running;
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                serviceHealthStatus = $"⚠️ Degrade - {running} out of {totalReplicas} replicas are running...spinning up {diff} more replica(s)";
+                Console.WriteLine($"Service Health Status: {serviceHealthStatus}");
+                Console.ResetColor();
+            }
+
+            else if(running == 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                serviceHealthStatus = "❌ Unhealthy - No replicas are running";
+                Console.WriteLine($"Service Health Status: {serviceHealthStatus}");
+                Console.ResetColor();
+            }
+
+            
         }
     }
 }
-
