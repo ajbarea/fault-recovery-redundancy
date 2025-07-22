@@ -94,7 +94,7 @@ public class HeartBeatMonitor
                 } else if(stateName == "RUNNING") {
                     Console.WriteLine($"\n  ✅ {stateName}: {count}");
                 } else {
-                    Console.WriteLine($"\nUNKNOWN:  {stateName}: {count}");
+                    Console.WriteLine($"\n ℹ️ {stateName}: {count}");
                 }
 
 
